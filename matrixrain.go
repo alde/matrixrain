@@ -44,7 +44,8 @@ func run() error {
 	}
 	defer f.Close()
 
-	s := newScene(r, w, f)
+	stop := make(chan int)
+	s := newScene(r, w, f, stop)
 	defer s.destroy()
 
 	events := make(chan sdl.Event)
@@ -55,6 +56,7 @@ func run() error {
 		select {
 		case events <- sdl.WaitEvent():
 		case err := <-errc:
+			stop <- 2
 			return err
 		}
 	}
@@ -65,14 +67,15 @@ type scene struct {
 	renderer *sdl.Renderer
 	window   *sdl.Window
 	lines    []*line
+	stop     chan int
 }
 
-func newScene(r *sdl.Renderer, w *sdl.Window, f *ttf.Font) *scene {
+func newScene(r *sdl.Renderer, w *sdl.Window, f *ttf.Font, stop chan int) *scene {
 	mlines := []*line{}
 	width, _ := w.GetSize()
 	count := int(width / 40)
 	for i := 0; i < count; i++ {
-		mlines = append(mlines, newLine(int32(i*40), r, f))
+		mlines = append(mlines, newLine(int32(i*40), r, f, stop))
 	}
 
 	return &scene{
@@ -80,6 +83,7 @@ func newScene(r *sdl.Renderer, w *sdl.Window, f *ttf.Font) *scene {
 		renderer: r,
 		window:   w,
 		lines:    mlines,
+		stop:     stop,
 	}
 }
 
@@ -113,6 +117,7 @@ func (s *scene) handleEvent(event sdl.Event) bool {
 		return true
 	case *sdl.KeyUpEvent:
 		if event.(*sdl.KeyUpEvent).Keysym.Sym == 27 {
+			s.stop <- 0
 			return true
 		}
 	}

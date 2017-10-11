@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/veandco/go-sdl2/ttf"
 	"github.com/veandco/go-sdl2/sdl"
+	"github.com/veandco/go-sdl2/ttf"
 )
 
 var symbols = []string{
@@ -20,19 +20,24 @@ var symbols = []string{
 
 type symbol struct {
 	color *sdl.Color
+	stop  <-chan int
 
 	symbol string
 }
 
-func newSymbol(c *sdl.Color) *symbol {
+func newSymbol(c *sdl.Color, stop <-chan int) *symbol {
 	s := &symbol{
 		color: c,
+		stop:  stop,
 	}
 	s.randomize()
+	interval := rand.Intn(500) + 500
 	go func(s *symbol) {
-		tick := time.Tick(500 * time.Millisecond)
+		tick := time.Tick(time.Duration(interval) * time.Millisecond)
 		for {
 			select {
+			case <-s.stop:
+				return
 			case <-tick:
 				s.randomize()
 			}

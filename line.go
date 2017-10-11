@@ -11,6 +11,7 @@ import (
 type line struct {
 	render *sdl.Renderer
 	font   *ttf.Font
+	stop   <-chan int
 
 	x       int32
 	y       int32
@@ -18,11 +19,12 @@ type line struct {
 	symbols []*symbol
 }
 
-func newLine(x int32, r *sdl.Renderer, f *ttf.Font) *line {
+func newLine(x int32, r *sdl.Renderer, f *ttf.Font, stop <-chan int) *line {
 	l := &line{
 		render: r,
 		font:   f,
 		x:      x,
+		stop:   stop,
 	}
 
 	l.reset()
@@ -54,11 +56,11 @@ func (l *line) paint(w *sdl.Window) error {
 func (l *line) reset() {
 	l.y = -rand.Int31n(1000)
 	l.speed = rand.Int31n(20) + 20
-	l.symbols = []*symbol{newSymbol(&sdl.Color{R: 120, G: 255, B: 120, A: 255})}
+	l.symbols = []*symbol{newSymbol(&sdl.Color{R: 120, G: 255, B: 120, A: 255}, l.stop)}
 
 	symbolCount := rand.Intn(20) + 20
 	for i := 0; i < symbolCount; i++ {
 		c := &sdl.Color{R: 0, G: 255, B: 50, A: 255}
-		l.symbols = append(l.symbols, newSymbol(c))
+		l.symbols = append(l.symbols, newSymbol(c, l.stop))
 	}
 }
